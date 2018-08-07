@@ -16,7 +16,7 @@ from math import sqrt
 import time
 
 #Zeo Libraries
-from Utility import *
+from .Utility import *
     
 class Parser:
     """
@@ -60,10 +60,10 @@ class Parser:
         """
         
         if version != 3:
-            print 'Unsupport raw data output version: %i' % version
+            print('Unsupport raw data output version: %i' % version)
             return
             
-        datatype = dataTypes[ord(data[0])]
+        datatype = dataTypes[data[0]]
         
         if datatype == 'Event':
             for callback in self.EventCallbacks:

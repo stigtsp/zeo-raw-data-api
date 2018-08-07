@@ -36,7 +36,7 @@ import threading
 from serial import Serial
 
 #Zeo Libraries
-from Utility import *
+from .Utility import *
 
 class BaseLink(threading.Thread):
     """
@@ -74,24 +74,27 @@ class BaseLink(threading.Thread):
         """Begins thread execution and raw serial parsing."""
         zeoTime = None
         version = None
-        ring = '  '
-        fatal_error_ring = '            '
+        ring = bytearray(b'  ')
+        fatal_error_ring = bytearray(b'            ')
         while not self.terminateEvent.isSet():
-            if ring != 'A4':
+            if ring != b'A4':
                 c = self.ser.read(1)
+#                self.error("%s" % str(c))
+ #               self.error("l: %s" % len(c))
                 if len(c) == 1:
                     ring = ring[1:] + c
+#                    self.error("ring: %s" % ring)
                     fatal_error_ring = fatal_error_ring[1:] + c
-                    if fatal_error_ring == 'FATAL_ERROR_':
-                        print 'A fatal error has occured.'
+                    if fatal_error_ring == b'FATAL_ERROR_':
+                        print('A fatal error has occured.')
                         self.terminateEvent.set()
                 else:
                     self.error('Read timeout in sync.')
-                    ring = '  '
+                    ring = bytearray(b'  ')
                     self.ser.flushInput()
             else:
-
-                ring = '  '
+#                self.error("ELSE!")
+                ring = bytearray(b'  ')
 
                 raw = self.ser.read(1)
                 if len(raw) != 1:
@@ -122,7 +125,8 @@ class BaseLink(threading.Thread):
                 if len(raw) != 3:
                     self.error('Failed to read timestamp.')
                     continue
-                timestamp_lowbyte = ord(raw[0])
+#                timestamp_lowbyte = ord(raw[0])
+                timestamp_lowbyte = raw[0]
                 timestamp_subsec = getUInt16(raw[1:3])/65535.0
                 timestamp = 0
 
@@ -139,18 +143,22 @@ class BaseLink(threading.Thread):
                     continue
 
                 data = raw
-
-                if sum(map(ord, data)) % 256 != cksum:
+#                print(cksum)
+#                print(data)
+#                if sum(map(ord, data)) % 256 != cksum:
+                if sum(data) % 256 != cksum:
                     self.error('bad checksum')
                     continue
 
                 
                 # Check the datatype is supported
-                if dataTypes.keys().count(ord(data[0])) == 0:
-                    self.error('Bad datatype 0x%02X.' % ord(data[0]))
+#                print(dataTypes)
+#                print(data[0])
+                if not dataTypes[data[0]]:
+                    self.error('Bad datatype 0x%02X.' % data[0])
                     continue
                     
-                datatype = dataTypes[ord(data[0])]
+                datatype = dataTypes[data[0]]
                 
                 # Check if this packet is an RTC time or version number
                 if datatype == 'ZeoTimestamp':
@@ -177,7 +185,6 @@ class BaseLink(threading.Thread):
                 else:
                     # Something doesn't line up. Maybe unit was reset.
                     timestamp = zeoTime
-                
                 for callback in self.callbacks:
                     callback(timestamp, timestamp_subsec, version, data)
         self.ser.close()
