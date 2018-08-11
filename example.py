@@ -14,7 +14,7 @@ parser = Parser()
 # Add the Parser to the BaseLink's callback
 link.addCallback(parser.update)
 client = udp_client.SimpleUDPClient("127.0.0.1", 13000)
-client2 = udp_client.SimpleUDPClient("127.0.0.1", 5005)
+
 # Add your callback functions
 
 #def linkCallbackDebug(timestamp, timestamp_subsec, version, data):
@@ -23,19 +23,18 @@ client2 = udp_client.SimpleUDPClient("127.0.0.1", 5005)
 #link.addCallback(linkCallbackDebug)
 
 def sendToOSC(s):
+    print(s)
     if not s:
         return False
-    
     for k in ['ZeoTimestamp',  'Impedance', 'SQI', 'Version', 'Waveform', 'SleepStage']:
         if s[k]:
-            print(s[k])
             client.send_message("/" + k, s[k])
-            client2.send_message("/" + k, s[k])
 
-        if s['FrequencyBins']:
-            client.send_message("/FrequencyBins", s['FrequencyBins'].values())
+    if s['FrequencyBins']:
+        client.send_message("/FrequencyBins", s['FrequencyBins'].values())
 
-        client.send_message("/BadSignal", s.get('BadSignal', False))
+    if 'BadSignal' in s:
+        client.send_message("/BadSignal", s['BadSignal'] or False)
 
             
 
